@@ -1,0 +1,106 @@
+---
+title: "Problem Set 1"
+author: 
+date: 
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# this prevents package loading message from appearing in the rendered version of your problem set
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE,
+                      message = FALSE)
+```
+
+Note: Grading is based both on your graphs and verbal explanations. Follow all best practices as discussed in class, including choosing appropriate parameters for all graphs. *Do not expect the assignment questions to spell out precisely how the graphs should be drawn. Sometimes guidance will be provided, but the absense of guidance does not mean that all choices are ok.*
+
+Read *Graphical Data Analysis with R*, Ch. 3
+
+### 1. Education and Income
+
+[8 points]
+
+Data: *ex0525* in the **Sleuth3** package
+
+a) Draw multiple horizontal boxplots of `Income2005`, by `Educ` (education level). Order the boxplots from lowest educational level at the bottom to highest educational level at the top. (Hint: reorder factor levels) What do you observe?
+```{r}
+library(Sleuth3)
+library(ggplot2)
+
+ggplot(ex0525, aes(x=Educ, y=Income2005)) +
+  geom_boxplot() +
+  coord_flip()
+```
+
+b) Draw histograms, faceted by `Educ`, for the same data. Describe one insight that was not visible in the boxplots.
+```{r}
+ggplot(ex0525, aes(Income2005)) +
+  geom_histogram()+facet_wrap(.~Educ)
+```
+
+c) Plot overlapping density curves of the same data, one curve per education level, on a single set of axes. Each curve should be a different color. What additional information do you learn? 
+```{r}
+ggplot(ex0525, aes(x=Educ,color=Educ)) +
+  geom_density()
+```
+
+### 2. Boundaries
+
+[4 points]
+
+a) Find or create a small dataset (< 100 observations) for which right open and right closed histograms for the same parameters are not identical. Display the full dataset (that is, show the numbers) and the plots of the two forms.
+
+b) Adjust parameters--the same for both--so that the right open and right closed versions become identical. Explain your strategy.
+
+### 3. Beavers
+
+[8 points]
+
+a) Use QQ (quantile-quantile) plots with theoretical normal lines to compare `temp` for the built-in `beaver1` and `beaver2` datasets.  Which appears to be more normally distributed?
+```{r}
+b1<-ggplot(beaver1,aes(sample=temp))+stat_qq()+stat_qq_line()+labs(title='qqplot of beaver1',y="temp")
+b1
+b2<-ggplot(beaver2,aes(sample=temp))+stat_qq()+stat_qq_line()+labs(title='qqplot of beaver2',y="temp")
+b2
+```
+b) Draw density histograms with density curves and theoretical normal curves overlaid. Does the data appear to be normally distributed?
+```{r}
+ggplot(beaver1, aes(x = temp)) +
+  geom_histogram(aes(y = ..density..), # the histogram will display "density" on its y-axis
+                 colour = "blue", fill = "white") +
+  geom_density(alpha = .2, fill="#FF6655")+labs(title='beaver1')
+ggplot(beaver2, aes(x = temp)) +
+  geom_histogram(aes(y = ..density..), # the histogram will display "density" on its y-axis
+                 colour = "blue", fill = "white") +
+  geom_density(alpha = .2, fill="#FF6655")+labs(title='beaver2')
+```
+
+c) Perform the Shapiro-Wilk test for normality using the `shapiro.test()` function and interpret the results. 
+```{r}
+shapiro.test(beaver1$temp)
+shapiro.test(beaver2$temp)
+```
+From the result of shapiro-Wilk test we can see that two p-values are both less than 0.05, So we can not say that they are normally distributed. However, since the p-value of *beaver1* is much bigger than one of *beaver2*, it can be concluded that *beaver1* are more normally distributed.
+d) Did all of the methods for testing for normality (a, b, and c) produce the same results? Briefly explain.
+A:Yes
+
+### 4. Doctors
+
+[4 points]
+
+Draw two histograms of the number of deaths attributed to coronary artery disease among doctors in the *breslow* dataset (**boot** package), one for smokers and one for non-smokers. *Hint: read the help file ?breslow to understand the data.*
+```{r}
+library(boot)
+head(breslow)
+```
+### 5. Nutrition
+
+[6 points]
+
+Data: `NutritionStudy` in the **Lock5withR** package
+
+a) Create a new categorical variable that represents ages in 10-year groups: 0-10, 11-20, 21-30, etc. Choose one of the continuous variables in the dataset and create a ridgeline plot (**ggridges** package) showing the distribution of the chosen variable by age. 
+
+b) Display the same data as in part a) using boxplots. 
+
+c) Compare a) and b). Which do you think is more effective for this data and why?
+
