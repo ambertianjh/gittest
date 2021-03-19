@@ -1,0 +1,275 @@
+---
+title: "EDAV PSet 3"
+author: Yunshan An & Zihao Liu
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# this prevents package loading message from appearing in the rendered version of your problem set
+knitr::opts_chunk$set(warning = FALSE,
+                      message = FALSE)
+```
+
+**Important Note**: Grading is based both on your graphs and verbal explanations. Follow all best practices as discussed in class, including choosing appropriate parameters for all graphs, and appropriate color choices. There's one exception: only one of your graphs needs to be drawn with color vision deficient friendly colors. Choose one, and show that that graph passes the test by including a screenshot taken with a color vision deficiency simulator such as Color Oracle (http://colororacle.org/).
+
+All graphs must be drawn in R. I have provided package suggestions but you may choose other options.
+
+You are expected to develop a basic subject matter understanding of the data, looking up, for example, whether a variable is ordinal or nominal, what the units are, etc. as relevant.
+
+*Do not expect the assignment questions to spell out precisely how the graphs should be drawn. Sometimes guidance will be provided, but the absense of guidance does not mean that all choices are ok.*
+
+
+
+Read *Graphical Data Analysis with R*, Ch. 6, 7
+
+### 1. Nutrition
+
+[6 points]
+
+Data: `nutrition` dataset in **EDAWR** package. Install with: 
+
+`remotes::install_github(rstudio/EDAWR)`
+
+Package suggestions: **GGally**, **parcoords**
+
+**a) Choose 3 food groups (`group` column) and at least 8 numeric variables and create a static parallel coordinates plot in which each line represents a food item. Color by food group. You may random sample if you find there is too much data to reasonably display. Choose parameters that best show trends in the data: experiment with alpha blending, scale, order of columns, splines (if available), and size of sample.**
+
+```{r, echo=TRUE}
+library(devtools)
+library(ggplot2)
+library(EDAWR)
+library(GGally)
+library(dplyr)
+
+data_new = nutrition %>% select(c("zinc","iron","calories","potassium","protein","niacin","magnesium","carbohydrates","group"))
+
+#data_new = filter(data_new, group %in% c("Poultry Products","Cereal Grains and Pasta","Beef Products"))
+data_new = filter(data_new, group %in% c("Beef Products","Vegetables and Vegetable Products","Baked Products"))
+
+ggparcoord(data_new,columns = 1:8 ,groupColumn = "group", scale = "uniminmax", alphaLines = 0.2, splineFactor = 10, order = "skewness") +
+  xlab("Nutrients")+
+  theme(legend.position = "none")
+```
+
+ We choose 3 groups that roughly have same amount of data (864 Beef, 828 Vegetable and 807 Baked. The next highest amount of data is Soup which has 511 sample data). Though some values are similar, the values for zinc, carbohydrates, calories and protein are pretty distinctive for 3 groups. And we think the graph is better presented with a spline factor of 10.
+
+**b) Repeat part a) with the same data but this time create an interactive parallel coodinates plot.**
+```{r, echo=TRUE}
+library(parcoords)
+library(tidyverse)
+library(d3r)
+
+data2 = rbind(data_new[3,],data_new[-3,])
+parcoords(data2, rownames = F, brushMode = "1D-axes",reorderable = T,color = list(
+colorBy = "group"),withD3 = T,width = 800,alpha = 0.1)
+```
+
+**c) Describe clusters, correlations, outliers and anything else of relevance in your plots in detail.**
+
+1. From the plot, we can observe that all three categories tend to have low measurements on magnesium, potassium and niacin. 
+
+2. Beef has the highest amount of zinc, way much higher than that in vegetables and baked foods. This makes sense because zinc is mainly located in animals, especially in seafoods.
+
+3. Baked foods has the highest level of carbohydrate because it is made from wheat and grains, which contain more carbohydrate than beef and vegetables.
+
+4. Both zinc and protein are negatively associated with carbohydrates.
+
+5. Baked foods with high carbohydrate can have either a medium or a low level of total calories. The medium level may come from food like bread or biscuit that involve sugar and refined grains when manufacturing. The low level may come from food like whole wheat bread.
+
+6. There are also some outliers in the plot. While in general, beef has a relatively low level of calories, there are outliers of beef that actually has the highest amount of calories over all 3 categories.
+
+7. Also, though vegetable seems to have a lower measure over all nutrients comapred to beef and baked foods, it actually is the group that has the data with highest measurements in magnesium, protein, iron and niacin. The highest protein value reached by vegetables is almost twice that reached by beef, which is quite amazing.
+
+8. All three categories have low measures on potassium, but some outliers from baked foods have extremely high values on potassium, three times than highest value reached by vegetables.
+
+### 2. Electric Cars Rebate
+
+[9 points]
+
+Data: NYSERDA Electric Vehicle Drive Clean Rebate Data: Beginning 2017
+
+Package suggestions:
+
+Mosaic plots: **vcd** or **ggmosaic**
+
+Treemap: **treemap**
+
+From the NYS web site: "New York State’s Charge NY initiative offers electric car buyers the Drive Clean Rebate of up to $2,000 for new car purchases or leases. The rebate amount depends on the battery-only range of each vehicle. Dealers enrolled in the program deduct the eligible amount from the vehicle price at the point of sale and then submit a rebate application with NYSERDA. This dataset includes all completed rebate applications as of the data through date."
+
+https://data.ny.gov/Energy-Environment/NYSERDA-Electric-Vehicle-Drive-Clean-Rebate-Data-B/thd2-fu8y
+
+You can read the data directly from the site with:
+
+`read_csv("https://data.ny.gov/resource/thd2-fu8y.csv")`
+
+Draw the following graphs and answer the questions.
+```{r, echo=TRUE}
+library(vcd)
+eleccar = read_csv("https://data.ny.gov/resource/thd2-fu8y.csv") %>% as.data.frame()
+
+```
+**a) Is there an association between transaction type and rebate amount? Justify your answer with a mosaic plot, treating rebate amount as the dependent variable.**
+```{r, echo=TRUE}
+mosaic(rebate_amount_usd ~ transaction_type,direction = c("v","h"),eleccar)
+```
+
+ We believe there is an association between transaction type and rebate amount. More people tend to buy the car when rebate amount is 500 or 2000 and to rent the car when rebate amount is 1700. It seems that people are equally likely to buy or rent when the rebate amount is 1100.
+
+**b) Perform a chi square test to test for association between transaction type and rebate amount. What is the result? Is it the same as in part a)?**
+```{r, echo=TRUE}
+indep_test = chisq.test(table(eleccar$transaction_type, eleccar$rebate_amount_usd))
+indep_test
+```
+The p-value for chi square test is 5.562e-15 (almost 0), way too much smaller than the usual significance level of 0.05. So we reject the null hypothesis and claim that the two variables are associated with each other. This agrees with our belief in part a).
+
+
+**c) Draw a mosaic plot of the top five car makes by year in this dataset. Is there an association?**
+```{r, echo=TRUE}
+
+top5 = arrange(plyr::count(eleccar, "make"),desc(freq))[1:5,1]
+top5data = eleccar[eleccar$make %in% top5,]
+top5data = mutate(top5data, year = format(as.Date(top5data$submitted_date,format="%Y-%m-%d"), "%Y"))
+df2c = top5data %>% group_by(make,year) %>% summarise(Freq = n())
+vcd::mosaic(year ~ make,direction = c("v","h"),labeling = labeling_border(rot_labels = c(0,0,0,45),abbreviate_labs=c(3,2)),top5data)
+#vcd::mosaic(year ~ make,df2c,direction = c("v","h"),labeling = labeling_border(rot_labels = c(45,90,0,0)))
+```
+
+ We believe there is an association between makes and year. The applications from Tesla and Hyundai seem to increase over time while applications from Chevrolet and Kia seem to decrease over time. Applications number from Toyota is more stable than other makes.
+
+**d) Add `transaction_type` to your plot from part c). What new information do you learn?**
+```{r, echo=TRUE}
+mosaic(year ~ make+transaction_type,direction = c("v","v","h"),labeling = labeling_border(rot_labels = c(0,0,0,45),abbreviate_labs=c(3,1,2)),top5data)
+```
+
+ In general, people are almost equally likely to buy or rent cars from Chevrolet and Hyundai. Most people would rent Kia cars instead of buying it while most people would buy Tesla and Toyota cars instead of renting.
+
+
+**e) Use the base `pairs()` function to draw a mosaic pairs plot of `ev_type`, `transaction_type`, `rebate_amount_usd` and `year`. Based on the plot, list all pairs of variables from strongest association to weakest association. (Note: The *vcd* package must be loaded for `pairs()` to find the correct method.)**
+```{r, echo=TRUE}
+library(vcd)
+#df3e = mutate(eleccar, year = format(as.Date(eleccar$submitted_date,format="%Y-%m-%d"), "%Y"))
+#df3e = df3e[,c(7,8,11,12)]
+#df3e$rebate_amount_usd = as.character(df3e$rebate_amount_usd)
+#df3e = structable(transaction_type~ev_type+rebate_amount_usd+year, data = df3e)
+#pairs(df3e)
+data2_e = mutate(eleccar, year = str_sub(eleccar$submitted_date,1,4))[,c(7,8,11,12)]
+pairs(xtabs( ~ ev_type+rebate_amount_usd+transaction_type+year, data = data2_e))
+```
+
+ From strongest association to weakest association:
+
+(rebate_amount and ev_type) - rebate amount for BEV is very different from that for PHEV.
+
+(rebate_amount and year) - proportion for rebate amount of 2000 is increasing over years.
+
+(rebate_amount and transaction_type) - proportion for lease tend to increase as rebate amount ncrease from 500 to 1700 and decrease as rebate amount reaches 2000.
+
+(transaction_type and year) - proportion for lease tend to decrease with year.
+
+(year and ev_type) - proportion for BEV tend to increase with year.
+
+(ev_type and transaction_type) - proportion for BEV in lease is close to that in purchase.
+
+
+
+
+**f) Draw a treemap of the make and models of the cars in this dataset.** 
+```{r, echo=TRUE}
+library(treemap)
+df3f = eleccar %>% group_by(make,model) %>% summarise(Freq = n())
+treemap(df3f, index = c("make","model"), vSize = "Freq", vColor = "make", palette = "Set3")
+```
+
+### 3. Occupational Mobility
+
+[6 points]
+
+Data: `Yamaguchi87` in the **vcdExtra** package
+
+Package suggestion: **ggalluvial**
+
+**a) Draw an alluvial diagram showing upward / downward mobility by class, combining data from all three countries together.**
+```{r,echo=TRUE}
+library(ggalluvial)
+library(vcdExtra)
+df3 = Yamaguchi87
+
+ggplot(df3,aes(y=Freq,axis1 = Father, axis2 = Son))+
+  geom_alluvium(aes(fill = Father),width = 1/12)+
+  geom_stratum(width = 1/12,fill = "grey")+
+  geom_label(stat = "stratum",aes(label = after_stat(stratum)))+
+  scale_x_discrete(expand = c(.05, .05))+
+  scale_fill_brewer(type = "qual", palette = "Set1")
+```
+
+**b) Incorporate the country information into your plot in a way that best illustrates the trends and facilitates comparison.**
+```{r, echo=TRUE}
+ggplot(df3,aes(y=Freq,axis1 = Father, axis2 = Country,axis3 = Son))+
+  geom_flow(aes(fill = Father),width = 1/12)+
+  geom_stratum(width = 1/12,fill = "grey")+
+  geom_label(stat = "stratum",aes(label = after_stat(stratum)))+
+  scale_x_discrete(expand = c(.05, .05))+
+  scale_fill_brewer(type = "qual", palette = "Set1")
+```
+
+**c) Based on part b), compare occupational mobility in the U.S., U.K., and Japan.**
+
+ US: Farm workers have the highest upward mobility in US. More than 80% of farm fathers have their sons working in upper categories. UpNM is the most stable one with more than half of UpNM fathers having their sons stay in the UpNM category and it also has the highest downward mobility. LoNM, UpM and LoM categories have mobility between that of Farm and UpNM. They all have less than 50% of fathers whose son would stay in the same category. US in total has a more upward mobility.
+
+UK: Farm workers have the highest upward mobility in UK. But the total amount of farm worker fathers in UK is much less compared to father in other categories. UpNM and LoM seem to be equally likely mobile. Both have about half of fathers having sons working in the same category and half having sons working in other categories. But mobility is downward for UpNM and upward for LoM. LoNM and UpM have relatively higher mobility and each has more than half of fathers whose son are working in other categories. UK in total has a more upward mobility.
+
+Japan: Farm workers have the highest upward mobility in Japan and it's also the largest category in Japan. LoM has the second highest upward mobility with only around 20 to 30 percent of fathers having sons working in the same category and the rest have sons working in uper categories. UpNM, LoNM and UpM have roughly equal mobility. About half or a slightly less than half of fathers having sons working in the same category. UpNM has the highest downward mobility. Japan in total has a more upward mobility.
+
+### 4. State Credit Ratings
+
+[9 points]
+
+Data: `state_ratings.csv` in the data folder of CourseWorks
+
+Package suggestion: **ggalluvial**
+
+The original data source is here: https://www.spglobal.com/ratings/en/research/articles/190319-history-of-u-s-state-ratings-2185306
+
+The issuer credit rating (ICR) indication, distinguishes some ratings from general obligation debt ratings. A footnote on [this site](https://www.treasurer.ca.gov/ratings/current.asp) explains that a state's issue credit rating is listed in place of a general obligation bond rating when a state does not have general obligation debt outstanding. To be consistent with sites like this, and for the purposes of simplification, the ICR indication was removed.
+
+The dates were converted to years, and in cases in which there were more than one entry per year, the latest was selected. For years in which there were no credit rating changes, the latest credit rating available was added. So for example, Wyoming had a listing of AA+ for 2017 which was reduced to AA in 2020. After filling in the inbetween years, we have the following for Wyoming from 2017-2020:
+
+```{r, eval = FALSE, echo = TRUE}
+df <- readr::read_csv("/Users/yunshanan/Desktop/Columbia/Spring 2021/STAT_5702/Homework/state_ratings.csv")
+dplyr::filter(df, State == "Wyoming" & Year >= 2017)
+```
+
+If you're interested, the script to read and transform the data is available here: get_ratings_data.R
+
+**a) Create an alluvial diagram showing rating changes by state over time. You do not have to use all the data. If you choose not to, explain your rationale for subsetting or sampling.**
+```{r,echo=TRUE}
+df4 = read_csv("/Users/yunshanan/Desktop/Columbia/Spring 2021/STAT_5702/Homework/HW3/state_ratings.csv") %>% as.data.frame()
+df4$Rating = factor(df4$Rating, levels=c("AAA","AA+","AA","AA-","A+","A","A-","BBB+","BBB","BBB-","NR"))
+
+df4a = df4[,c(1,2,5)]
+df4a = df4a %>% pivot_wider(names_from = Year, values_from = Rating) %>% data.frame()
+df4a = df4a %>% mutate(Freq = n())
+df4a = df4a %>% filter(State %in% c("Arizona","California","Texas","Florida","Illinois","New York","Washington","Kentucky","Massachusetts","Michigan","Wyoming","Minnesota","Colorado","Mississippi","Virginia"))
+ggplot(df4a,aes(y=Freq,axis1 = X2006, axis2 = X2007,axis3 = X2008,axis4 = X2009,axis5 = X2010,axis6 = X2011,axis7 = X2012,axis8 = X2013,axis9 = X2014,axis10 = X2015,axis11 = X2016))+
+  geom_alluvium(aes(fill = State),width = 1/12)+
+  geom_stratum(width = 1/12,fill = "grey")+
+  geom_label(stat = "stratum",aes(label = after_stat(stratum)))+
+  scale_x_discrete(expand = c(.05, .05))
+```
+
+ Putting 50 states on the same graph would make the plot pretty messy, so we only choose some of the states from the dataset. To make the plot more representative, we choose states that roughly cover US geographically. We have states from east coast, west coast, middle part, south part and north part. We believe this could make our plot more representative and plausible.
+
+**b) Create a heatmap with the same data (if applicable use the same subset or sample), also showing rating changes by state over time. (One option: `geom_tile()`.)**
+```{r,echo=TRUE}
+
+df4 %>% filter(State %in% c("Arizona","California","Texas","Florida","Illinois","New York","Washington","Kentucky","Massachusetts","Michigan","Wyoming","Minnesota","Colorado","Mississippi","Virginia")) %>% ggplot(aes(x=Year, y=State, fill=Rating))+
+  geom_tile()
+```
+
+**c) Compare a) and b). What advantages does each have? Which do you prefer?**
+
+ The advantage of alluvial diagram is that it shows the flow very clearly and the width of the flow could easily demonstrate proportions (since all states have only 1 rating per year, the proportion would be the same here).
+
+The advantage of heatmap is that it could reflect changes on ratings of one state very clearly. It's easy to find out when does the rating of one state changes and whether it becomes better or worse.
+
+I think heatmap works better here because usually we would focus on changes of single state over time and heatmap definitely shows it better for single state.
